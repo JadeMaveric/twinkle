@@ -28,7 +28,6 @@ Twinkle.batchprotect.callback = function twinklebatchprotectCallback() {
 	var Window = new Morebits.simpleWindow( 600, 400 );
 	Window.setTitle( "Batch protection" );
 	Window.setScriptName( "Twinkle" );
-	//Window.addFooterLink( "Protection templates", "Template:Protection templates" );
 	Window.addFooterLink( "Protection policy", "WP:PROT" );
 	Window.addFooterLink( "Twinkle help", "WP:TW/DOC#protect" );
 
@@ -61,6 +60,11 @@ Twinkle.batchprotect.callback = function twinklebatchprotectCallback() {
 			type: 'option',
 			label: 'Autoconfirmed',
 			value: 'autoconfirmed'
+		});
+	editlevel.append({
+			type: 'option',
+			label: 'Extended confirmed',
+			value: 'extendedconfirmed'
 		});
 	editlevel.append({
 			type: 'option',
@@ -129,8 +133,8 @@ Twinkle.batchprotect.callback = function twinklebatchprotectCallback() {
 		});
 	movelevel.append({
 			type: 'option',
-			label: 'Autoconfirmed',
-			value: 'autoconfirmed'
+			label: 'Extended confirmed',
+			value: 'extendedconfirmed'
 		});
 	movelevel.append({
 			type: 'option',
@@ -205,6 +209,11 @@ Twinkle.batchprotect.callback = function twinklebatchprotectCallback() {
 			type: 'option',
 			label: 'Autoconfirmed',
 			value: 'autoconfirmed'
+		});
+	createlevel.append({
+			type: 'option',
+			label: 'Extended confirmed',
+			value: 'extendedconfirmed'
 		});
 	createlevel.append({
 			type: 'option',

@@ -16,8 +16,9 @@
  * This is AzaToth's Twinkle, the popular script sidekick for newbies, admins, and
  * every Wikipedian in between. Visit [[WP:TW]] for more information.
  */
-
 //<nowiki>
+
+/* global Morebits */
 
 ( function ( window, document, $, undefined ) { // Wrap with anonymous function
 
@@ -43,17 +44,20 @@ Twinkle.defaultConfig = {};
  * For help on the actual preferences, see the comments in twinkleconfig.js.
  */
 Twinkle.defaultConfig.twinkle = {
-	 // General
+	// General
 	summaryAd: " ([[WP:TW|TW]])",
 	deletionSummaryAd: " ([[WP:TW|TW]])",
 	protectionSummaryAd: " ([[WP:TW|TW]])",
 	userTalkPageMode: "tab",
 	dialogLargeFont: false,
-	 // ARV
+
+	// ARV
 	spiWatchReport: "yes",
-	 // Block
+
+	// Block
 	blankTalkpageOnIndefBlock: false,
-	 // Fluff (revert and rollback)
+
+	// Fluff (revert and rollback)
 	openTalkPage: [ "agf", "norm", "vand" ],
 	openTalkPageOnAutoRevert: false,
 	markRevertedPagesAsMinor: [ "vand" ],
@@ -61,22 +65,26 @@ Twinkle.defaultConfig.twinkle = {
 	offerReasonOnNormalRevert: true,
 	confirmOnFluff: false,
 	showRollbackLinks: [ "diff", "others" ],
-	 // DI (twinkleimage)
+
+	// DI (twinkleimage)
 	notifyUserOnDeli: true,
 	deliWatchPage: "default",
 	deliWatchUser: "default",
-	 // PROD
+
+	// PROD
 	watchProdPages: true,
 	prodReasonDefault: "",
 	logProdPages: false,
 	prodLogPageName: "PROD log",
-	 // CSD
+
+	// CSD
 	speedySelectionStyle: "buttonClick",
 	watchSpeedyPages: [ "g3", "g5", "g10", "g11", "g12" ],
-	markSpeedyPagesAsPatrolled: true,
+	markSpeedyPagesAsPatrolled: false,
+
 	// these next two should probably be identical by default
-	notifyUserOnSpeedyDeletionNomination:    [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
-	welcomeUserOnSpeedyDeletionNotification: [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
+	notifyUserOnSpeedyDeletionNomination:    [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "g14", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
+	welcomeUserOnSpeedyDeletionNotification: [ "db", "g1", "g2", "g3", "g4", "g6", "g10", "g11", "g12", "g13", "g14", "a1", "a2", "a3", "a5", "a7", "a9", "a10", "a11", "f1", "f2", "f3", "f7", "f9", "f10", "u3", "u5", "t2", "t3", "p1", "p2" ],
 	promptForSpeedyDeletionSummary: [],
 	openUserTalkPageOnSpeedyDelete: [ "db", "g1", "g2", "g3", "g4", "g5", "g10", "g11", "g12", "a1", "a3", "a7", "a9", "a10", "a11", "f3", "f7", "f9", "u3", "u5", "t2", "p1" ],
 	deleteTalkPageOnDelete: true,
@@ -87,20 +95,26 @@ Twinkle.defaultConfig.twinkle = {
 	logSpeedyNominations: false,
 	speedyLogPageName: "CSD log",
 	noLogOnSpeedyNomination: [ "u1" ],
-	 // Unlink
+
+	// Unlink
 	unlinkNamespaces: [ "0", "10", "100", "118" ],
-	 // Warn
+
+	// Warn
 	defaultWarningGroup: "1",
 	showSharedIPNotice: true,
 	watchWarnings: true,
 	customWarningList: [],
-	 // XfD
+	autoMenuAfterRollback: false,
+
+	// XfD
 	xfdWatchDiscussion: "default",
 	xfdWatchList: "no",
 	xfdWatchPage: "default",
 	xfdWatchUser: "default",
+	xfdWatchRelated: "default",
 	markXfdPagesAsPatrolled: true,
-	 // Hidden preferences
+
+	// Hidden preferences
 	revertMaxRevisions: 50,
 	batchdeleteChunks: 50,
 	batchMax: 5000,
@@ -125,7 +139,7 @@ if ( mw.config.get( "skin" ) === "vector" ) {
 }
 
 Twinkle.defaultConfig.friendly = {
-	 // Tag
+	// Tag
 	groupByDefault: true,
 	watchTaggedPages: true,
 	watchMergeDiscussions: true,
@@ -133,7 +147,10 @@ Twinkle.defaultConfig.friendly = {
 	markTaggedPagesAsPatrolled: true,
 	tagArticleSortOrder: "cat",
 	customTagList: [],
-	 // Welcome
+	customFileTagList: [],
+	customRedirectTagList: [],
+
+	// Welcome
 	topWelcomes: false,
 	watchWelcomes: true,
 	welcomeHeading: "Welcome",
@@ -144,13 +161,15 @@ Twinkle.defaultConfig.friendly = {
 	quickWelcomeTemplate: "welcome",
 	customWelcomeList: [],
 	customWelcomeSignature: true,
-	 // Talkback
+
+	// Talkback
 	markTalkbackAsMinor: true,
 	insertTalkbackSignature: true,  // always sign talkback templates
-	talkbackHeading: "Talkback",
+	talkbackHeading: "New message from " + mw.config.get("wgUserName"),
 	adminNoticeHeading: "Notice",
 	mailHeading: "You've got mail!",
-	 // Shared
+
+	// Shared
 	markSharedIPAsMinor: true
 };
 
@@ -275,7 +294,19 @@ Twinkle.addPortlet = function( navigation, id, text, type, nextnodeid )
 		root.appendChild( outerDiv );
 	}
 
+	if( outerDivClass === "vectorMenu" ) {	
+		// add invisible checkbox to make menu keyboard accessible
+		// similar to the p-cactions ("More") menu
+		var chkbox = document.createElement( "input" );
+		chkbox.className = "vectorMenuCheckbox";
+		chkbox.setAttribute( "type","checkbox" );
+		chkbox.setAttribute( "aria-labelledby", "p-twinkle-label" );
+		outerDiv.appendChild( chkbox );
+	}
 	var h5 = document.createElement( "h3" );
+	if(outerDivClass === "vectorMenu") { 
+		h5.id = "p-twinkle-label";
+	}
 	if ( type === "menu" ) {
 		var span = document.createElement( "span" );
 		span.appendChild( document.createTextNode( text ) );
@@ -323,7 +354,8 @@ Twinkle.addPortletLink = function( task, text, id, tooltip )
 		Twinkle.addPortlet( Twinkle.getPref( "portletArea" ), Twinkle.getPref( "portletId" ), Twinkle.getPref( "portletName" ), Twinkle.getPref( "portletType" ), Twinkle.getPref( "portletNext" ));
 	}
 	var link = mw.util.addPortletLink( Twinkle.getPref( "portletId" ), typeof task === "string" ? task : "#", text, id, tooltip );
-	if ( $.isFunction( task ) ) {
+	$('.client-js .skin-vector #p-cactions').css('margin-right', 'initial');
+	if ( typeof task === "function" ) {
 		$( link ).click(function ( ev ) {
 			task();
 			ev.preventDefault();
@@ -348,7 +380,7 @@ $.ajax({
 	url: scriptpathbefore + "User:" + encodeURIComponent( mw.config.get("wgUserName")) + "/twinkleoptions.js" + scriptpathafter,
 	dataType: "text"
 })
-	.fail(function () {	mw.util.jsMessage( "Could not load twinkleoptions.js" ); })
+	.fail(function () {	mw.notify( "Could not load twinkleoptions.js" ); })
 	.done(function ( optionsText ) {
 
 		// Quick pass if user has no options
@@ -365,7 +397,7 @@ $.ajax({
 		}
 
 		try {
-			var options = $.parseJSON( optionsText );
+			var options = JSON.parse( optionsText );
 
 			// Assuming that our options evolve, we will want to transform older versions:
 			//if ( options.optionsVersion === undefined ) {
@@ -383,7 +415,7 @@ $.ajax({
 			}
 		}
 		catch ( e ) {
-			mw.util.jsMessage("Could not parse twinkleoptions.js");
+			mw.notify("Could not parse twinkleoptions.js");
 		}
 	})
 	.always(function () {
@@ -394,23 +426,31 @@ $.ajax({
 // For example, mw.loader.load(scriptpathbefore + "User:UncleDouggie/morebits-test.js" + scriptpathafter);
 
 Twinkle.load = function () {
-	// Don't activate on special pages other than "Contributions" so that they load faster, especially the watchlist.
+	// Don't activate on special pages other than those on the whitelist so that
+	// they load faster, especially the watchlist.
+	var specialPageWhitelist = [ 'Contributions', 'DeletedContributions', 'Prefixindex' ];
 	var isSpecialPage = ( mw.config.get('wgNamespaceNumber') === -1 &&
-		mw.config.get('wgCanonicalSpecialPageName') !== "Contributions" &&
-		mw.config.get('wgCanonicalSpecialPageName') !== "Prefixindex" ),
+		specialPageWhitelist.indexOf( mw.config.get('wgCanonicalSpecialPageName') ) === -1 );
 
-		// Also, Twinkle is incompatible with Internet Explorer versions 8 or lower, so don't load there either.
-		isOldIE = ( $.client.profile().name === 'msie' && $.client.profile().versionNumber < 9 );
+	// Also, Twinkle is incompatible with Internet Explorer versions 8 or lower,
+	// so don't load there either.
+	var isOldIE = ( $.client.profile().name === 'msie' &&
+		$.client.profile().versionNumber < 9 );
 
 	// Prevent users that are not autoconfirmed from loading Twinkle as well.
 	if ( isSpecialPage || isOldIE || !Twinkle.userAuthorized ) {
 		return;
 	}
 
+	// Prevent clickjacking
+	if ( window.top !== window.self ) {
+		return;
+	}
+
 	// Set custom Api-User-Agent header, for server-side logging purposes
 	Morebits.wiki.api.setApiUserAgent( 'Twinkle/2.0 (' + mw.config.get( 'wgDBname' ) + ')' );
 
-	// Load the modules in the order that the tabs should appears
+	// Load the modules in the order that the tabs should appear
 	// User/user talk-related
 	Twinkle.arv();
 	Twinkle.warn();
@@ -440,7 +480,7 @@ Twinkle.load = function () {
 		Twinkle.batchundelete();
 	}
 	// Run the initialization callbacks for any custom modules
-	$( Twinkle.initCallbacks ).each(function ( k, v ) { v(); });
+	Twinkle.initCallbacks.forEach(function ( func ) { func(); });
 	Twinkle.addInitCallback = function ( func ) { func(); };
 
 	// Increases text size in Twinkle dialogs, if so configured
@@ -452,4 +492,4 @@ Twinkle.load = function () {
 
 } ( window, document, jQuery )); // End wrap with anonymous function
 
-// </nowiki>
+//</nowiki>

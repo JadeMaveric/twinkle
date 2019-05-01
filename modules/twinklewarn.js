@@ -9,16 +9,20 @@
  *** twinklewarn.js: Warn module
  ****************************************
  * Mode of invocation:     Tab ("Warn")
- * Active on:              User talk pages
+ * Active on:              User (talk) pages and (deleted) Contributions
  * Config directives in:   TwinkleConfig
  */
 
 Twinkle.warn = function twinklewarn() {
 	if( mw.config.get( 'wgRelevantUserName' ) ) {
 			Twinkle.addPortletLink( Twinkle.warn.callback, "Warn", "tw-warn", "Warn/notify user" );
+			if (Twinkle.getPref('autoMenuAfterRollback') && mw.config.get('wgNamespaceNumber') === 3 && mw.util.getParamValue('vanarticle') && !mw.util.getParamValue('friendlywelcome')) {
+				Twinkle.warn.callback();
+			}
 	}
 
-	// modify URL of talk page on rollback success pages
+	// Modify URL of talk page on rollback success pages, makes use of a
+	// custom message box in [[MediaWiki:Rollback-success]]
 	if( mw.config.get('wgAction') === 'rollback' ) {
 		var $vandalTalkLink = $("#mw-rollback-success").find(".mw-usertoollinks a").first();
 		if ( $vandalTalkLink.length ) {
@@ -62,13 +66,13 @@ Twinkle.warn.callback = function twinklewarnCallback() {
 		} );
 
 	var defaultGroup = parseInt(Twinkle.getPref('defaultWarningGroup'), 10);
-	main_group.append( { type: 'option', label: 'General note (1)', value: 'level1', selected: ( defaultGroup === 1 || defaultGroup < 1 || ( Morebits.userIsInGroup( 'sysop' ) ? defaultGroup > 8 : defaultGroup > 7 ) ) } );
-	main_group.append( { type: 'option', label: 'Caution (2)', value: 'level2', selected: ( defaultGroup === 2 ) } );
-	main_group.append( { type: 'option', label: 'Warning (3)', value: 'level3', selected: ( defaultGroup === 3 ) } );
-	main_group.append( { type: 'option', label: 'Final warning (4)', value: 'level4', selected: ( defaultGroup === 4 ) } );
-	main_group.append( { type: 'option', label: 'Only warning (4im)', value: 'level4im', selected: ( defaultGroup === 5 ) } );
-	main_group.append( { type: 'option', label: 'Single issue notices', value: 'singlenotice', selected: ( defaultGroup === 6 ) } );
-	main_group.append( { type: 'option', label: 'Single issue warnings', value: 'singlewarn', selected: ( defaultGroup === 7 ) } );
+	main_group.append( { type: 'option', label: '1: General note', value: 'level1', selected: ( defaultGroup === 1 ) } );
+	main_group.append( { type: 'option', label: '2: Caution', value: 'level2', selected: ( defaultGroup === 2 ) } );
+	main_group.append( { type: 'option', label: '3: Warning', value: 'level3', selected: ( defaultGroup === 3 ) } );
+	main_group.append( { type: 'option', label: '4: Final warning', value: 'level4', selected: ( defaultGroup === 4 ) } );
+	main_group.append( { type: 'option', label: '4im: Only warning', value: 'level4im', selected: ( defaultGroup === 5 ) } );
+	main_group.append( { type: 'option', label: 'Single-issue notices', value: 'singlenotice', selected: ( defaultGroup === 6 ) } );
+	main_group.append( { type: 'option', label: 'Single-issue warnings', value: 'singlewarn', selected: ( defaultGroup === 7 ) } );
 	if( Twinkle.getPref( 'customWarningList' ).length ) {
 		main_group.append( { type: 'option', label: 'Custom warnings', value: 'custom', selected: ( defaultGroup === 9 ) } );
 	}
@@ -78,9 +82,9 @@ Twinkle.warn.callback = function twinklewarnCallback() {
 	form.append( {
 			type: 'input',
 			name: 'article',
-			label: 'Linked article',
+			label: 'Linked page',
 			value:( Morebits.queryString.exists( 'vanarticle' ) ? Morebits.queryString.get( 'vanarticle' ) : '' ),
-			tooltip: 'An article can be linked within the notice, perhaps because it was a revert to said article that dispatched this notice. Leave empty for no article to be linked.'
+			tooltip: 'A page can be linked within the notice, perhaps because it was a revert to said page that dispatched this notice. Leave empty for no page to be linked.'
 		} );
 
 	var more = form.append( { type: 'field', name: 'reasonGroup', label: 'Warning information' } );
@@ -189,9 +193,13 @@ Twinkle.warn.messages = {
 				label: "Not adhering to neutral point of view",
 				summary: "General note: Not adhering to neutral point of view"
 			},
+			"uw-paid1": {
+				label: "Paid editing without disclosure under the Wikimedia Terms of Use",
+				summary: "General note: Paid editing without disclosure under the Wikimedia Terms of Use"
+			},
 			"uw-spam1": {
-				label: "Adding spam links",
-				summary: "General note: Adding spam links"
+				label: "Adding inappropriate external links",
+				summary: "General note: Adding inappropriate external links"
 			}
 		},
 		"Behavior towards other editors": {
@@ -231,6 +239,10 @@ Twinkle.warn.messages = {
 			}
 		},
 		"Other": {
+			"uw-attempt1": {
+				label: "Triggering the edit filter",
+				summary: "General note: Triggering the edit filter"
+			},
 			"uw-chat1": {
 				label: "Using talk page as forum",
 				summary: "General note: Using talk page as forum"
@@ -255,21 +267,7 @@ Twinkle.warn.messages = {
 				label: "Uploading unencyclopedic images",
 				summary: "General note: Uploading unencyclopedic images"
 			}
-		}/*,
-		"To be removed from Twinkle": {
-			"uw-redirect1": {
-				label: "Creating malicious redirects",
-				summary: "General note: Creating malicious redirects"
-			},
-			"uw-ics1": {
-				label: "Uploading files missing copyright status",
-				summary: "General note: Uploading files missing copyright status"
-			},
-			"uw-af1": {
-				label: "Inappropriate feedback through the Article Feedback Tool",
-				summary: "General note: Inappropriate feedback through the Article Feedback Tool"
-			}
-		}*/
+		}
 	},
 
 
@@ -347,6 +345,10 @@ Twinkle.warn.messages = {
 				label: "Not adhering to neutral point of view",
 				summary: "Caution: Not adhering to neutral point of view"
 			},
+			"uw-paid2": {
+				label: "Paid editing without disclosure under the Wikimedia Terms of Use",
+				summary: "Caution: Paid editing without disclosure under the Wikimedia Terms of Use"
+			},
 			"uw-spam2": {
 				label: "Adding spam links",
 				summary: "Caution: Adding spam links"
@@ -417,17 +419,7 @@ Twinkle.warn.messages = {
 				label: "Uploading unencyclopedic images",
 				summary: "Caution: Uploading unencyclopedic images"
 			}
-		}/*,
-		"To be removed from Twinkle": {
-			"uw-redirect2": {
-				label: "Creating malicious redirects",
-				summary: "Caution: Creating malicious redirects"
-			},
-			"uw-ics2": {
-				label: "Uploading files missing copyright status",
-				summary: "Caution: Uploading files missing copyright status"
-			}
-		}*/
+		}
 	},
 
 
@@ -505,6 +497,10 @@ Twinkle.warn.messages = {
 				label: "Not adhering to neutral point of view",
 				summary: "Warning: Not adhering to neutral point of view"
 			},
+			"uw-paid3": {
+				label: "Paid editing without disclosure under the Wikimedia Terms of Use",
+				summary: "Warning: Paid editing without disclosure under the Wikimedia Terms of Use"
+			},
 			"uw-spam3": {
 				label: "Adding spam links",
 				summary: "Warning: Adding spam links"
@@ -571,17 +567,7 @@ Twinkle.warn.messages = {
 				label: "Uploading unencyclopedic images",
 				summary: "Warning: Uploading unencyclopedic images"
 			}
-		}/*,
-		"To be removed fomr Twinkle": {
-			"uw-ics3": {
-				label: "Uploading files missing copyright status",
-				summary: "Warning: Uploading files missing copyright status"
-			},
-			"uw-redirect3": {
-				label: "Creating malicious redirects",
-				summary: "Warning: Creating malicious redirects"
-			}
-		}*/
+		}
 	},
 
 
@@ -647,6 +633,10 @@ Twinkle.warn.messages = {
 				label: "Not adhering to neutral point of view",
 				summary: "Final warning: Not adhering to neutral point of view"
 			},
+			"uw-paid4": {
+				label: "Paid editing without disclosure under the Wikimedia Terms of Use",
+				summary: "Final warning: Paid editing without disclosure under the Wikimedia Terms of Use"
+			},
 			"uw-spam4": {
 				label: "Adding spam links",
 				summary: "Final warning: Adding spam links"
@@ -709,17 +699,7 @@ Twinkle.warn.messages = {
 				label: "Uploading unencyclopedic images",
 				summary: "Final warning: Uploading unencyclopedic images"
 			}
-		}/*,
-		"To be removed from Twinkle": {
-			"uw-redirect4": {
-				label: "Creating malicious redirects",
-				summary: "Final warning: Creating malicious redirects"
-			},
-			"uw-ics4": {
-				label: "Uploading files missing copyright status",
-				summary: "Final warning: Uploading files missing copyright status"
-			}
-		}*/
+		}
 	},
 
 
@@ -789,13 +769,7 @@ Twinkle.warn.messages = {
 				label: "Uploading unencyclopedic images",
 				summary: "Only warning: Uploading unencyclopedic images"
 			}
-		}/*,
-		"To be removed from Twinkle": {
-			"uw-redirect4im": {
-				label: "Creating malicious redirects",
-				summary: "Only warning: Creating malicious redirects"
-			}
-		}*/
+		}
 	},
 
 	singlenotice: {
@@ -926,10 +900,6 @@ Twinkle.warn.messages = {
 			label: "Adding spoiler alerts or removing spoilers from appropriate sections",
 			summary: "Notice: Don't delete or flag potential 'spoilers' in Wikipedia articles"
 		},
-		"uw-subst": {
-			label: "Remember to subst: templates",
-			summary: "Notice: Remember to subst: templates"
-		},
 		"uw-talkinarticle": {
 			label: "Talk in article",
 			summary: "Notice: Talk in article"
@@ -959,8 +929,8 @@ Twinkle.warn.messages = {
 
 	singlewarn: {
 		"uw-3rr": {
-			label: "Violating the three-revert rule; see also uw-ew",
-			summary: "Warning: Violating the three-revert rule"
+			label: "Potential three-revert rule violation; see also uw-ew",
+			summary: "Warning: Three-revert rule"
 		},
 		"uw-affiliate": {
 			label: "Affiliate marketing",
@@ -1109,9 +1079,10 @@ Twinkle.warn.callback.change_category = function twinklewarnCallbackChangeCatego
 				selected = true;
 			}
 
+			// Slice out leading uw- from the menu display
 			var elem = new Morebits.quickForm.element( {
 				type: 'option',
-				label: "{{" + key + "}}: " + itemProperties.label,
+				label: (value === 'custom' ? "{{" + key + "}}" : key.slice(3)) + ": " + itemProperties.label,
 				value: key,
 				selected: selected
 			} );
@@ -1142,44 +1113,46 @@ Twinkle.warn.callback.change_category = function twinklewarnCallbackChangeCatego
 	// clear overridden label on article textbox
 	Morebits.quickForm.setElementTooltipVisibility(e.target.root.article, true);
 	Morebits.quickForm.resetElementLabel(e.target.root.article);
-
 	// hide the big red notice
 	$("#tw-warn-red-notice").remove();
+	// add custom label.redWarning
+	Twinkle.warn.callback.change_subcategory(e);
 };
 
 Twinkle.warn.callback.change_subcategory = function twinklewarnCallbackChangeSubcategory(e) {
 	var main_group = e.target.form.main_group.value;
 	var value = e.target.form.sub_group.value;
 
+	// Tags that don't take a linked article, but something else (often a username).
+	// The value of each tag is the label next to the input field
+	var notLinkedArticle = {
+		"uw-agf-sock": "Optional username of other account (without User:) ",
+		"uw-bite": "Username of 'bitten' user (without User:) ",
+		"uw-socksuspect": "Username of sock master, if known (without User:) ",
+		"uw-username": "Username violates policy because... ",
+		"uw-aiv": "Optional username that was reported (without User:) "
+	};
+
 	if( main_group === 'singlenotice' || main_group === 'singlewarn' ) {
-		if( value === 'uw-bite' || value === 'uw-username' || value === 'uw-socksuspect' ) {
+		if( notLinkedArticle[value] ) {
 			if(Twinkle.warn.prev_article === null) {
 				Twinkle.warn.prev_article = e.target.form.article.value;
 			}
 			e.target.form.article.notArticle = true;
 			e.target.form.article.value = '';
+
+			// change form labels according to the warning selected
+			Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, false);
+			Morebits.quickForm.overrideElementLabel(e.target.form.article, notLinkedArticle[value]);
 		} else if( e.target.form.article.notArticle ) {
 			if(Twinkle.warn.prev_article !== null) {
 				e.target.form.article.value = Twinkle.warn.prev_article;
 				Twinkle.warn.prev_article = null;
 			}
 			e.target.form.article.notArticle = false;
+			Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, true);
+			Morebits.quickForm.resetElementLabel(e.target.form.article);
 		}
-	}
-
-	// change form labels according to the warning selected
-	if (value === "uw-socksuspect") {
-		Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, false);
-		Morebits.quickForm.overrideElementLabel(e.target.form.article, "Username of sock master, if known (without User:) ");
-	} else if (value === "uw-username") {
-		Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, false);
-		Morebits.quickForm.overrideElementLabel(e.target.form.article, "Username violates policy because... ");
-	} else if (value === "uw-bite") {
-		Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, false);
-		Morebits.quickForm.overrideElementLabel(e.target.form.article, "Username of 'bitten' user (without User:) ");
-	} else {
-		Morebits.quickForm.setElementTooltipVisibility(e.target.form.article, true);
-		Morebits.quickForm.resetElementLabel(e.target.form.article);
 	}
 
 	// add big red notice, warning users about how to use {{uw-[coi-]username}} appropriately
@@ -1223,7 +1196,7 @@ Twinkle.warn.callbacks = {
 			text += " ''" + reason + "''";
 		}
 
-		return text;
+		return text + ' ~~~~';
 	},
 	preview: function(form) {
 		var templatename = form.sub_group.value;
@@ -1233,7 +1206,7 @@ Twinkle.warn.callbacks = {
 		templatetext = Twinkle.warn.callbacks.getWarningWikitext(templatename, linkedarticle,
 			form.reason.value, form.main_group.value === 'custom');
 
-		form.previewer.beginRender(templatetext);
+		form.previewer.beginRender(templatetext, 'User_talk:' + mw.config.get('wgRelevantUserName')); // Force wikitext/correct username
 	},
 	main: function( pageobj ) {
 		var text = pageobj.getPageText();
@@ -1301,9 +1274,9 @@ Twinkle.warn.callbacks = {
 			text += "== " + date.getUTCMonthName() + " " + date.getUTCFullYear() + " ==\n";
 		}
 		text += Twinkle.warn.callbacks.getWarningWikitext(params.sub_group, params.article,
-			params.reason, params.main_group === 'custom') + " ~~~~";
+			params.reason, params.main_group === 'custom');
 
-		if ( Twinkle.getPref('showSharedIPNotice') && Morebits.isIPAddress( mw.config.get('wgTitle') ) ) {
+		if ( Twinkle.getPref('showSharedIPNotice') && mw.util.isIPAddress( mw.config.get('wgTitle') ) ) {
 			Morebits.status.info( 'Info', 'Adding a shared IP notice' );
 			text +=  "\n{{subst:Shared IP advice}}";
 		}
@@ -1339,10 +1312,12 @@ Twinkle.warn.callbacks = {
 		} else {
 			summary = messageData.summary;
 			if ( messageData.suppressArticleInSummary !== true && params.article ) {
-				if ( params.sub_group === "uw-socksuspect" ) {  // this template requires a username
-					summary += " of [[User:" + params.article + "]]";
+				if ( params.sub_group === "uw-agf-sock" ||
+						params.sub_group === "uw-socksuspect" ||
+						params.sub_group === "uw-aiv" ) {  // these templates require a username
+					summary += " of [[:User:" + params.article + "]]";
 				} else {
-					summary += " on [[" + params.article + "]]";
+					summary += " on [[:" + params.article + "]]";
 				}
 			}
 		}

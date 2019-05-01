@@ -17,9 +17,23 @@
  Twinklefluff revert and antivandalism utility
  */
 
+var spanTag = function( color, content ) {
+	var span = document.createElement( 'span' );
+	span.style.color = color;
+	span.appendChild( document.createTextNode( content ) );
+	return span;
+};
+var buildLink = function(color, text) {
+	var link = document.createElement('a');
+	link.appendChild(spanTag('Black', '['));
+	link.appendChild(spanTag(color, text));
+	link.appendChild(spanTag('Black', ']'));
+	return link;
+};
+
 Twinkle.fluff = {
 	auto: function() {
-		if( parseInt( Morebits.queryString.get('oldid'), 10) !== mw.config.get('wgCurRevisionId') ) {
+		if( mw.config.get('wgRevisionId') !== mw.config.get('wgCurRevisionId') ) {
 			// not latest revision
 			alert("Can't rollback, page has changed in the meantime.");
 			return;
@@ -29,123 +43,80 @@ Twinkle.fluff = {
 
 		Twinkle.fluff.revert( Morebits.queryString.get( 'twinklerevert' ), vandal, true );
 	},
-	normal: function() {
 
-		var spanTag = function( color, content ) {
-			var span = document.createElement( 'span' );
-			span.style.color = color;
-			span.appendChild( document.createTextNode( content ) );
-			return span;
-		};
-
-		if( mw.config.get('wgNamespaceNumber') === -1 && mw.config.get('wgCanonicalSpecialPageName') === "Contributions" ) {
+	contributions: function() {
+		// $('sp-contributions-footer-anon-range') relies on the fmbox
+		// id in [[MediaWiki:Sp-contributions-footer-anon-range]] and
+		// is used to show rollback/vandalism links for IP ranges
+		if( mw.config.get('wgCanonicalSpecialPageName') === "Contributions" && (mw.config.exists('wgRelevantUserName') || !!$('#sp-contributions-footer-anon-range')[0])) {
 			//Get the username these contributions are for
-			var logLink = $('#contentSub').find('a[title^="Special:Log"]').last();
-			if (logLink.length>0) //#215 -- there is no log link on Special:Contributions with no user
-			{
-				var username = decodeURIComponent(/wiki\/Special:Log\/(.+)$/.exec(logLink.attr("href").replace(/_/g, "%20"))[1]);
-				if( Twinkle.getPref('showRollbackLinks').indexOf('contribs') !== -1 ||
-					( mw.config.get('wgUserName') !== username && Twinkle.getPref('showRollbackLinks').indexOf('others') !== -1 ) ||
-					( mw.config.get('wgUserName') === username && Twinkle.getPref('showRollbackLinks').indexOf('mine') !== -1 ) ) {
-					var list = $("#mw-content-text").find("ul li:has(span.mw-uctop)");
+			var username = mw.config.get('wgRelevantUserName');
+			if( Twinkle.getPref('showRollbackLinks').indexOf('contribs') !== -1 ||
+				( mw.config.get('wgUserName') !== username && Twinkle.getPref('showRollbackLinks').indexOf('others') !== -1 ) ||
+				( mw.config.get('wgUserName') === username && Twinkle.getPref('showRollbackLinks').indexOf('mine') !== -1 ) ) {
+				var list = $("#mw-content-text").find("ul li:has(span.mw-uctop)");
 
-					var revNode = document.createElement('strong');
-					var revLink = document.createElement('a');
-					revLink.appendChild( spanTag( 'Black', '[' ) );
-					revLink.appendChild( spanTag( 'SteelBlue', 'rollback' ) );
-					revLink.appendChild( spanTag( 'Black', ']' ) );
-					revNode.appendChild(revLink);
+				var revNode = document.createElement('strong');
+				var revLink = buildLink('SteelBlue', 'rollback');
+				revNode.appendChild(revLink);
 
-					var revVandNode = document.createElement('strong');
-					var revVandLink = document.createElement('a');
-					revVandLink.appendChild( spanTag( 'Black', '[' ) );
-					revVandLink.appendChild( spanTag( 'Red', 'vandalism' ) );
-					revVandLink.appendChild( spanTag( 'Black', ']' ) );
-					revVandNode.appendChild(revVandLink);
+				var revVandNode = document.createElement('strong');
+				var revVandLink = buildLink('Red', 'vandalism');
+				revVandNode.appendChild(revVandLink);
 
-					list.each(function(key, current) {
-						var href = $(current).children("a:eq(1)").attr("href");
-						current.appendChild( document.createTextNode(' ') );
-						var tmpNode = revNode.cloneNode( true );
-						tmpNode.firstChild.setAttribute( 'href', href + '&' + Morebits.queryString.create( { 'twinklerevert': 'norm' } ) );
-						current.appendChild( tmpNode );
-						current.appendChild( document.createTextNode(' ') );
-						tmpNode = revVandNode.cloneNode( true );
-						tmpNode.firstChild.setAttribute( 'href', href + '&' + Morebits.queryString.create( { 'twinklerevert': 'vand' } ) );
-						current.appendChild( tmpNode );
-					});
-				}
+				list.each(function(key, current) {
+					var href = $(current).find(".mw-changeslist-diff").attr("href");
+					current.appendChild( document.createTextNode(' ') );
+					var tmpNode = revNode.cloneNode( true );
+					tmpNode.firstChild.setAttribute( 'href', href + '&' + Morebits.queryString.create( { 'twinklerevert': 'norm' } ) );
+					current.appendChild( tmpNode );
+					current.appendChild( document.createTextNode(' ') );
+					tmpNode = revVandNode.cloneNode( true );
+					tmpNode.firstChild.setAttribute( 'href', href + '&' + Morebits.queryString.create( { 'twinklerevert': 'vand' } ) );
+					current.appendChild( tmpNode );
+				});
 			}
-		} else {
+		}
+	},
 
-			if( mw.config.get('wgCanonicalSpecialPageName') === "Undelete" ) {
-				//You can't rollback deleted pages!
-				return;
-			}
-
-			var firstRev = $("div.firstrevisionheader").length;
-			if( firstRev ) {
-				// we have first revision here, nothing to do.
-				return;
-			}
-
-			var otitle, ntitle;
-			try {
-				var otitle1 = document.getElementById('mw-diff-otitle1');
-				var ntitle1 = document.getElementById('mw-diff-ntitle1');
-				if (!otitle1 || !ntitle1) {
-					return;
-				}
-				otitle = otitle1.parentNode;
-				ntitle = ntitle1.parentNode;
-			} catch( e ) {
-				// no old, nor new title, nothing to do really, return;
-				return;
-			}
-
-			var old_rev_url = $("#mw-diff-otitle1").find("strong a").attr("href");
-
-			// Lets first add a [edit this revision] link
-			var query = new Morebits.queryString( old_rev_url.split( '?', 2 )[1] );
-
-			var oldrev = query.get('oldid');
-
-			var revertToRevision = document.createElement('div');
-			revertToRevision.setAttribute( 'id', 'tw-revert-to-orevision' );
-			revertToRevision.style.fontWeight = 'bold';
-
-			var revertToRevisionLink = revertToRevision.appendChild( document.createElement('a') );
-			revertToRevisionLink.href = "#";
-			$(revertToRevisionLink).click(function(){
-				Twinkle.fluff.revertToRevision(oldrev);
-			});
-			revertToRevisionLink.appendChild( spanTag( 'Black', '[' ) );
-			revertToRevisionLink.appendChild( spanTag( 'SaddleBrown', 'restore this version' ) );
-			revertToRevisionLink.appendChild( spanTag( 'Black', ']' ) );
-
-			otitle.insertBefore( revertToRevision, otitle.firstChild );
-
-			if( document.getElementById('differences-nextlink') ) {
-				// Not latest revision
-				var new_rev_url = $("#mw-diff-ntitle1").find("strong a").attr("href");
-				query = new Morebits.queryString( new_rev_url.split( '?', 2 )[1] );
-				var newrev = query.get('oldid');
-				revertToRevision = document.createElement('div');
-				revertToRevision.setAttribute( 'id', 'tw-revert-to-nrevision' );
+	diff: function() {
+		if (mw.config.get('wgDiffNewId') === mw.config.get('wgRevisionId')) {
+			// Add a [restore this revision] link to the older revision
+			// Don't show if there's a single revision or weird diff (cur on latest)
+			if (mw.config.get('wgDiffOldId') && (mw.config.get('wgDiffOldId') !== mw.config.get('wgDiffNewId'))) {
+				var revertToRevision = document.createElement('div');
+				revertToRevision.setAttribute( 'id', 'tw-revert-to-orevision' );
 				revertToRevision.style.fontWeight = 'bold';
-				revertToRevisionLink = revertToRevision.appendChild( document.createElement('a') );
+
+				var revertToRevisionLink = buildLink('SaddleBrown', 'restore this version');
 				revertToRevisionLink.href = "#";
 				$(revertToRevisionLink).click(function(){
-					Twinkle.fluff.revertToRevision(newrev);
+					Twinkle.fluff.revertToRevision(mw.config.get('wgDiffOldId').toString());
 				});
-				revertToRevisionLink.appendChild( spanTag( 'Black', '[' ) );
-				revertToRevisionLink.appendChild( spanTag( 'SaddleBrown', 'restore this version' ) );
-				revertToRevisionLink.appendChild( spanTag( 'Black', ']' ) );
-				ntitle.insertBefore( revertToRevision, ntitle.firstChild );
+				revertToRevision.appendChild(revertToRevisionLink);
 
-				return;
+				var otitle = document.getElementById('mw-diff-otitle1').parentNode;
+				otitle.insertBefore( revertToRevision, otitle.firstChild );
 			}
-			if( Twinkle.getPref('showRollbackLinks').indexOf('diff') !== -1 ) {
+
+			// Add either restore or rollback links to the newer revision
+			// Don't show if there's a single revision or weird diff (prev on first)
+			var ntitle = document.getElementById('mw-diff-ntitle1').parentNode;
+			if( document.getElementById('differences-nextlink') ) {
+				// Not latest revision
+				var revertToRevisionN = document.createElement('div');
+				revertToRevisionN.setAttribute( 'id', 'tw-revert-to-nrevision' );
+				revertToRevisionN.style.fontWeight = 'bold';
+
+				var revertToRevisionNLink = buildLink('SaddleBrown', 'restore this version');
+				revertToRevisionNLink.href = "#";
+				$(revertToRevisionNLink).click(function(){
+					Twinkle.fluff.revertToRevision(mw.config.get('wgDiffNewId').toString());
+				});
+				revertToRevisionN.appendChild(revertToRevisionNLink);
+
+				ntitle.insertBefore( revertToRevisionN, ntitle.firstChild );
+			} else if( Twinkle.getPref('showRollbackLinks').indexOf('diff') !== -1 && mw.config.get('wgDiffOldId') && (mw.config.get('wgDiffOldId') !== mw.config.get('wgDiffNewId') || document.getElementById('differences-prevlink'))) {
 				var vandal = $("#mw-diff-ntitle2").find("a").first().text();
 
 				var revertNode = document.createElement('div');
@@ -155,9 +126,9 @@ Twinkle.fluff = {
 				var vandNode = document.createElement('strong');
 				var normNode = document.createElement('strong');
 
-				var agfLink = document.createElement('a');
-				var vandLink = document.createElement('a');
-				var normLink = document.createElement('a');
+				var agfLink = buildLink('DarkOliveGreen', 'rollback (AGF)');
+				var vandLink = buildLink('Red', 'rollback (VANDAL)');
+				var normLink = buildLink('SteelBlue', 'rollback');
 
 				agfLink.href = "#";
 				vandLink.href = "#";
@@ -172,18 +143,6 @@ Twinkle.fluff = {
 					Twinkle.fluff.revert('norm', vandal);
 				});
 
-				agfLink.appendChild( spanTag( 'Black', '[' ) );
-				agfLink.appendChild( spanTag( 'DarkOliveGreen', 'rollback (AGF)' ) );
-				agfLink.appendChild( spanTag( 'Black', ']' ) );
-
-				vandLink.appendChild( spanTag( 'Black', '[' ) );
-				vandLink.appendChild( spanTag( 'Red', 'rollback (VANDAL)' ) );
-				vandLink.appendChild( spanTag( 'Black', ']' ) );
-
-				normLink.appendChild( spanTag( 'Black', '[' ) );
-				normLink.appendChild( spanTag( 'SteelBlue', 'rollback' ) );
-				normLink.appendChild( spanTag( 'Black', ']' ) );
-
 				agfNode.appendChild(agfLink);
 				vandNode.appendChild(vandLink);
 				normNode.appendChild(normLink);
@@ -197,6 +156,21 @@ Twinkle.fluff = {
 				ntitle.insertBefore( revertNode, ntitle.firstChild );
 			}
 		}
+	},
+
+	oldid: function() { // Add a [restore this revision] link on old revisions
+		var revertToRevision = document.createElement('div');
+		revertToRevision.setAttribute( 'id', 'tw-revert-to-orevision' );
+		revertToRevision.style.fontWeight = 'bold';
+
+		var revertToRevisionLink = buildLink('SaddleBrown', 'restore this version');
+		revertToRevisionLink.href = "#";
+		$(revertToRevisionLink).click(function(){
+			Twinkle.fluff.revertToRevision(mw.config.get('wgRevisionId').toString());
+		});
+		revertToRevision.appendChild(revertToRevisionLink);
+		var otitle = document.getElementById('mw-revision-info').parentNode;
+		otitle.insertBefore( revertToRevision, otitle.firstChild );
 	}
 };
 
@@ -251,7 +225,7 @@ Twinkle.fluff.revertToRevision = function revertToRevision( oldrev ) {
 };
 
 Twinkle.fluff.userIpLink = function( user ) {
-	return (Morebits.isIPAddress(user) ? "[[Special:Contributions/" : "[[User:" ) + user + "|" + user + "]]";
+	return (mw.util.isIPAddress(user) ? "[[Special:Contributions/" : "[[:User:" ) + user + "|" + user + "]]";
 };
 
 Twinkle.fluff.callbacks = {
@@ -267,7 +241,7 @@ Twinkle.fluff.callbacks = {
 			var revertToUser = $(xmlDoc).find('rev').attr('user');
 
 			if (revertToRevID !== self.params.rev) {
-				self.statitem.error( 'The retrieved revision does not match the requested revision.  Aborting.' );
+				self.statitem.error( 'The retrieved revision does not match the requested revision. Stopping revert.' );
 				return;
 			}
 
@@ -288,8 +262,8 @@ Twinkle.fluff.callbacks = {
 				'undoafter': revertToRevID,
 				'basetimestamp': touched,
 				'starttimestamp': starttimestamp,
-				'watchlist': Twinkle.getPref('watchRevertedPages').indexOf( self.params.type ) !== -1 ? 'watch' : undefined,
-				'minor': Twinkle.getPref('markRevertedPagesAsMinor').indexOf( self.params.type ) !== -1  ? true : undefined
+				'watchlist': Twinkle.getPref('watchRevertedPages').indexOf( 'torev' ) !== -1 ? 'watch' : undefined,
+				'minor': Twinkle.getPref('markRevertedPagesAsMinor').indexOf( 'torev' ) !== -1  ? true : undefined
 			};
 
 			Morebits.wiki.actionCompleted.redirect = mw.config.get('wgPageName');
@@ -313,12 +287,12 @@ Twinkle.fluff.callbacks = {
 		var revs = $(xmlDoc).find('rev');
 
 		if( revs.length < 1 ) {
-			self.statelem.error( 'We have less than one additional revision, thus impossible to revert' );
+			self.statelem.error( 'We have less than one additional revision, thus impossible to revert.' );
 			return;
 		}
 		var top = revs[0];
 		if( lastrevid < self.params.revid ) {
-			Morebits.status.error( 'Error', [ 'The most recent revision ID received from the server, ', Morebits.htmlNode( 'strong', lastrevid ), ', is less than the ID of the displayed revision. This could indicate that the current revision has been deleted, the server is lagging, or that bad data has been received. Will stop proceeding at this point.' ] );
+			Morebits.status.error( 'Error', [ 'The most recent revision ID received from the server, ', Morebits.htmlNode( 'strong', lastrevid ), ', is less than the ID of the displayed revision. This could indicate that the current revision has been deleted, the server is lagging, or that bad data has been received. Stopping revert.' ] );
 			return;
 		}
 		var index = 1;
@@ -327,23 +301,23 @@ Twinkle.fluff.callbacks = {
 			if( lastuser === self.params.user ) {
 				switch( self.params.type ) {
 				case 'vand':
-					Morebits.status.info( 'Info', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , '. As we assume vandalism, we continue to revert' ]);
+					Morebits.status.info( 'Info', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , '. As we assume vandalism, we will proceed to revert.' ]);
 					break;
 				case 'agf':
-					Morebits.status.warn( 'Warning', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , '. As we assume good faith, we stop reverting, as the problem might have been fixed.' ]);
+					Morebits.status.warn( 'Warning', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , '. As we assume good faith, we will stop the revert, as the problem might have been fixed.' ]);
 					return;
 				default:
-					Morebits.status.warn( 'Notice', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , ', but we will stop reverting anyway.' ] );
+					Morebits.status.warn( 'Notice', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', self.params.user ) , ', but we will stop the revert.' ] );
 					return;
 				}
 			}
 			else if(self.params.type === 'vand' &&
 					Twinkle.fluff.whiteList.indexOf( top.getAttribute( 'user' ) ) !== -1 && revs.length > 1 &&
 					revs[1].getAttribute( 'pageId' ) === self.params.revid) {
-				Morebits.status.info( 'Info', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', lastuser ), ', a trusted bot, and the revision before was made by our vandal, so we proceed with the revert.' ] );
+				Morebits.status.info( 'Info', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', lastuser ), ', a trusted bot, and the revision before was made by our vandal, so we will proceed with the revert.' ] );
 				index = 2;
 			} else {
-				Morebits.status.error( 'Error', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', lastuser ), ', so it might have already been reverted, stopping  reverting.'] );
+				Morebits.status.error( 'Error', [ 'Latest revision was made by ', Morebits.htmlNode( 'strong', lastuser ), ', so it might have already been reverted, we will stop the revert.'] );
 				return;
 			}
 
@@ -357,7 +331,7 @@ Twinkle.fluff.callbacks = {
 				self.params.user = revs[1].getAttribute( 'user' );
 				break;
 			case 'agf':
-				Morebits.status.warn( 'Notice', [ 'Good faith revert was chosen on ', Morebits.htmlNode( 'strong', self.params.user ), '. This is a whitelisted bot, and since bots have no faith, AGF rollback will not proceed.' ] );
+				Morebits.status.warn( 'Notice', [ 'Good faith revert was chosen on ', Morebits.htmlNode( 'strong', self.params.user ), '. This is a whitelisted bot and thus AGF rollback will not proceed.' ] );
 				return;
 			case 'norm':
 				/* falls through */
@@ -368,7 +342,7 @@ Twinkle.fluff.callbacks = {
 					index = 2;
 					self.params.user = revs[1].getAttribute( 'user' );
 				} else {
-					Morebits.status.warn( 'Notice', [ 'Normal revert was chosen on ', Morebits.htmlNode( 'strong', self.params.user ), '. This is a whitelisted bot, but per confirmation, revert on top revision will proceed.' ] );
+					Morebits.status.warn( 'Notice', [ 'Normal revert was chosen on ', Morebits.htmlNode( 'strong', self.params.user ), '. This is a whitelisted bot, but per confirmation, revert on selected revision will proceed.' ] );
 				}
 				break;
 			}
@@ -390,7 +364,7 @@ Twinkle.fluff.callbacks = {
 		}
 
 		if( ! count ) {
-			Morebits.status.error( 'Error', "We were to revert zero revisions. As that makes no sense, we'll stop reverting this time. It could be that the edit has already been reverted, but the revision ID was still the same." );
+			Morebits.status.error( 'Error', "As it is not possible to revert zero revisions, we will stop this revert. It could be that the edit has already been reverted, but the revision ID was still the same." );
 			return;
 		}
 
@@ -398,7 +372,7 @@ Twinkle.fluff.callbacks = {
 		var userHasAlreadyConfirmedAction = false;
 		if (self.params.type !== 'vand' && count > 1) {
 			if ( !confirm( self.params.user + ' has made ' + count + ' edits in a row. Are you sure you want to revert them all?') ) {
-				Morebits.status.info( 'Notice', 'Stopping reverting per user input' );
+				Morebits.status.info( 'Notice', 'Stopping revert.' );
 				return;
 			}
 			userHasAlreadyConfirmedAction = true;
@@ -429,7 +403,7 @@ Twinkle.fluff.callbacks = {
 
 			summary = "Reverted " + self.params.count + (self.params.count > 1 ? ' edits' : ' edit') + " by [[Special:Contributions/" +
 				self.params.user + "|" + self.params.user + "]] ([[User talk:" + self.params.user + "|talk]]) to last revision by " +
-				self.params.gooduser + "." + Twinkle.getPref('summaryAd');
+				self.params.gooduser + Twinkle.getPref('summaryAd');
 			break;
 
 		case 'norm':
@@ -522,15 +496,28 @@ Twinkle.fluff.callbacks = {
 
 	},
 	complete: function (apiobj) {
-		var $edit = $(apiobj.getXML()).find('edit');
+		// TODO Most of this is copy-pasted from Morebits.wiki.page#fnSaveSuccess. Unify it
+		var xml = apiobj.getXML();
+		var $edit = $(xml).find('edit');
 		var blacklist = $edit.attr('spamblacklist');
 		if (blacklist) {
 			var code = document.createElement('code');
 			code.style.fontFamily = "monospace";
 			code.appendChild(document.createTextNode(blacklist));
-			apiobj.statelem.error(['Could not rollback because the URL ', code, ' is on the spam blacklist.']);
+			apiobj.statelem.error(['Could not rollback, because the URL ', code, ' is on the spam blacklist.']);
+		} else if ( $(xml).find('captcha').length > 0 ) {
+			apiobj.statelem.error("Could not rollback, because the wiki server wanted you to fill out a CAPTCHA.");
+		} else if ( $edit.attr('code') === 'abusefilter-disallowed' ) {
+			apiobj.statelem.error('The edit was disallowed by the edit filter rule "' + $edit.attr('info').substring(17) + '".');
+		} else if ( $edit.attr('info') && $edit.attr('info').indexOf('Hit AbuseFilter:') === 0 ) {
+			var div = document.createElement('div');
+			div.className = "toccolours";
+			div.style.fontWeight = "normal";
+			div.style.color = "black";
+			div.innerHTML = $edit.attr('warning');
+			apiobj.statelem.error([ 'The following warning was returned by the edit filter: ', div, 'If you wish to proceed with the rollback, please reload this page (F5 or Ctrl+R) and carry it out again. This warning will not appear a second time.' ]);
 		} else if ($edit.attr('nochange') === '') {
-			apiobj.statelem.warn("Revision we are reverting to is identical to current revision: Nothing to do");
+			apiobj.statelem.warn("Revision we are reverting to is identical to current revision, stopping revert.");
 		} else {
 			apiobj.statelem.info("done");
 
@@ -554,14 +541,9 @@ Twinkle.fluff.callbacks = {
 Twinkle.fluff.formatSummary = function(builtInString, userName, userString) {
 	var result = builtInString;
 
-	// append user's custom reason with requisite punctuation
+	// append user's custom reason
 	if (userString) {
 		result += ': ' + Morebits.string.toUpperCaseFirstChar(userString);
-		if (userString.search(/[.?!;]$/) === -1) {
-			result += '.';
-		}
-	} else {
-		result += '.';
 	}
 	result += Twinkle.getPref('summaryAd');
 
@@ -574,12 +556,12 @@ Twinkle.fluff.formatSummary = function(builtInString, userName, userString) {
 	if (resultLen + contribsLen <= 255) {
 		var talkLink = " ([[User talk:" + userName + "|talk]])";
 		if (resultLen + contribsLen + unescape(encodeURIComponent(talkLink)).length <= 255) {
-			result = result.replace("$USER", contribsLink + talkLink);
+			result = Morebits.string.safeReplace(result, "$USER", contribsLink + talkLink);
 		} else {
-			result = result.replace("$USER", contribsLink);
+			result = Morebits.string.safeReplace(result, "$USER", contribsLink);
 		}
 	} else {
-		result = result.replace("$USER", userName);
+		result = Morebits.string.safeReplace(result, "$USER", userName);
 	}
 
 	return result;
@@ -600,8 +582,14 @@ Twinkle.fluff.init = function twinklefluffinit() {
 
 		if ( Morebits.queryString.exists( 'twinklerevert' ) ) {
 			Twinkle.fluff.auto();
-		} else {
-			Twinkle.fluff.normal();
+		} else if( mw.config.get('wgNamespaceNumber') === -1 && mw.config.get('wgCanonicalSpecialPageName') === "Contributions" ) {
+			Twinkle.fluff.contributions();
+		} else if( mw.config.get('wgDiffOldId') || mw.config.get('wgDiffNewId') ) { // wgDiffOldId included for clarity in if else loop [[phab:T214985]]
+			mw.hook( 'wikipage.diff' ).add( function () { // Reload alongside the revision slider
+				Twinkle.fluff.diff();
+			} );
+		} else if( mw.config.get('wgCurRevisionId') !== mw.config.get('wgRevisionId') ) {
+			Twinkle.fluff.oldid();
 		}
 	}
 };
